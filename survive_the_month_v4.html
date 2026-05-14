@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Survive the Month — NYC Budget Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#1a7f3c;--green-light:#d4edda;--red:#c0392b;--red-light:#fdecea;
+  --yellow:#8a6d0b;--yellow-light:#fff8e1;--navy:#2c3e50;--navy2:#34495e;
+  --purple:#5b21b6;--purple-light:#ede9fe;
+  --orange:#92400e;--orange-light:#fef3c7;
+  --blue:#1e40af;--blue-light:#dbeafe;
+  --gray-50:#f8fafc;--gray-100:#f4f6f8;--gray-200:#e8ecef;
+  --gray-400:#9aa3ad;--gray-600:#5a6472;
+  --text:#1a202c;--border:#dde3ea;--white:#fff;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --r:10px;--rl:16px;--sh:0 1px 2px rgba(0,0,0,.06);
+}
+body{font-family:var(--font);color:var(--text);background:#f0f2f5;min-height:100vh;padding:24px 16px 60px;font-size:15px;line-height:1.6}
+.wrap{max-width:640px;margin:0 auto}
+.gh{text-align:center;margin-bottom:28px}
+.gh h1{font-size:28px;font-weight:600;color:var(--navy);letter-spacing:-.5px;margin-bottom:6px}
+.gh p{color:var(--gray-600);font-size:14px}
+.pill{display:inline-block;background:var(--navy);color:#fff;font-family:var(--mono);font-size:13px;padding:4px 14px;border-radius:999px;margin-top:10px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--rl);padding:20px 22px;margin-bottom:16px;box-shadow:var(--sh)}
+.ct{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:14px}
+.sl{font-size:12px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--gray-100)}
+.fl{display:block;font-size:13px;font-weight:500;color:var(--gray-600);margin-bottom:5px;margin-top:12px}
+input[type=text],select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font);font-size:14px;color:var(--text);background:var(--white);appearance:none;outline:none;transition:border-color .15s}
+input[type=text]:focus,select:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(44,62,80,.1)}
+.sw{position:relative}.sw::after{content:"▾";position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--gray-400);font-size:13px}
+.iw{background:var(--yellow-light);border:1px solid #f0c040;border-radius:var(--r);padding:8px 12px;font-size:12px;color:var(--yellow);margin-top:6px;display:none}
+.prev{margin-top:16px;padding:12px 14px;background:var(--gray-100);border-radius:var(--r);font-size:13px;color:var(--gray-600);display:flex;gap:16px;flex-wrap:wrap}
+.prev strong{font-family:var(--mono);font-size:14px}
+.ok{color:var(--green)}.warn{color:#d97706}.danger{color:var(--red)}
+.btn{display:block;width:100%;padding:12px 20px;border:none;border-radius:var(--r);font-family:var(--font);font-size:15px;font-weight:500;cursor:pointer;transition:all .15s;text-align:center}
+.btn:active{transform:scale(.98)}
+.btn-p{background:var(--navy);color:#fff}.btn-p:hover{background:#1a252f}
+.btn-s{background:var(--gray-100);color:var(--navy);border:1px solid var(--border);margin-top:10px}
+.btn-s:hover{background:var(--gray-200)}
+.btn-invest{padding:14px;border-radius:var(--r);border:2px solid var(--border);background:var(--white);cursor:pointer;font-family:var(--font);text-align:left;margin-bottom:10px;transition:all .15s;width:100%}
+.btn-invest:hover{border-color:var(--navy);background:var(--gray-50)}
+.btn-invest.selected{border-color:var(--navy);background:var(--blue-light)}
+.btn-invest .ititle{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:2px}
+.btn-invest .idesc{font-size:12px;color:var(--gray-600);line-height:1.5}
+.btn-invest .irate{font-size:12px;font-weight:600;margin-top:4px}
+.screen{display:none}.screen.active{display:block}
+.hud{background:var(--navy);border-radius:var(--rl);padding:16px 20px;margin-bottom:16px;color:#fff}
+.hud-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.hud-name{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:2px}
+.hud-bal{font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:-1px}
+.hud-bal.neg{color:#ff7f7f}
+.hud-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1)}
+.hs{text-align:center}
+.hs-label{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.hs-val{font-family:var(--mono);font-size:14px;font-weight:500}
+.hs-val.neg{color:#ff7f7f}.hs-val.gd{color:#6ee7a0}
+.wdots{display:flex;gap:6px}
+.wd{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+.wd.done{background:rgba(26,127,60,.3);color:#6ee7a0}
+.wd.active{background:#fff;color:var(--navy)}
+.wd.todo{background:rgba(255,255,255,.1);color:rgba(255,255,255,.4)}
+.alert{border-radius:var(--r);padding:10px 14px;font-size:13px;margin-bottom:14px;display:none}
+.a-debt{background:var(--red-light);border:1px solid #f5c6c2;color:var(--red)}
+.a-double{background:#1a252f;color:#ffd700;font-weight:600;font-size:14px;text-align:center}
+.a-efund{background:var(--green-light);border:1px solid #a8d5b5;color:var(--green);font-size:13px}
+.frow{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;border-bottom:1px solid var(--gray-100)}
+.frow:last-child{border-bottom:none}
+.famt{font-family:var(--mono);font-size:13px;color:var(--red)}
+.ftot{display:flex;justify-content:space-between;padding-top:10px;margin-top:4px;font-weight:600;font-size:14px;border-top:1px solid var(--border)}
+.ftot .famt{color:var(--red)}
+.etag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.5px;padding:3px 10px;border-radius:999px;margin-bottom:10px}
+.tw{background:var(--green-light);color:var(--green)}
+.tn{background:var(--red-light);color:var(--red)}
+.tm{background:var(--yellow-light);color:var(--yellow)}
+.ts{background:var(--purple-light);color:var(--purple)}
+.tp{background:var(--orange-light);color:var(--orange)}
+.etitle{font-size:17px;font-weight:600;color:var(--navy);margin-bottom:8px;line-height:1.4}
+.edesc{font-size:14px;color:var(--gray-600);margin-bottom:18px;line-height:1.6}
+.cbtn{display:block;width:100%;text-align:left;padding:11px 14px;margin-bottom:8px;background:var(--gray-100);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;font-family:var(--font);font-size:14px;color:var(--text);transition:all .12s;line-height:1.4}
+.cbtn:last-child{margin-bottom:0}
+.cbtn:hover{background:var(--white);border-color:var(--navy);box-shadow:var(--sh)}
+.cbtn.ef-option{background:var(--green-light);border-color:#a8d5b5}
+.cbtn.ef-option:hover{background:#c3e6cb;border-color:var(--green)}
+.clbl{display:inline-block;font-weight:600;color:var(--navy);margin-right:6px;font-size:13px}
+.sc{display:block;font-size:12px;color:var(--purple);margin-top:3px;font-style:italic}
+.le{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;font-size:13px;color:var(--gray-600);border-bottom:1px solid var(--gray-100);gap:12px}
+.le:last-child{border-bottom:none}
+.ln{flex:1}.la{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.la.neg{color:var(--red)}.la.pos{color:var(--green)}
+/* MONTH SUMMARY */
+.msummary{padding:4px 0}
+.mstat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.mstat{background:var(--gray-100);border-radius:var(--r);padding:14px;text-align:center}
+.mstat-label{font-size:11px;color:var(--gray-400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+.mstat-val{font-family:var(--mono);font-size:20px;font-weight:500}
+.mstat-val.pos{color:var(--green)}.mstat-val.neg{color:var(--red)}
+.rule-bar{height:8px;background:var(--gray-200);border-radius:4px;overflow:hidden;margin:4px 0 8px}
+.rule-fill{height:100%;border-radius:4px;transition:width .5s}
+.surplus-opts{margin-top:4px}
+/* FINAL SCREEN */
+.rhero{text-align:center;padding:24px 20px 20px}
+.remoji{font-size:52px;margin-bottom:12px}
+.rtitle{font-size:24px;font-weight:600;color:var(--navy);margin-bottom:6px}
+.rdesc{font-size:14px;color:var(--gray-600);margin-bottom:20px;line-height:1.6}
+.rbox{display:inline-block;background:var(--gray-100);border-radius:var(--r);padding:14px 28px}
+.rlabel{font-size:11px;color:var(--gray-400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.rnum{font-family:var(--mono);font-size:28px;font-weight:500;letter-spacing:-1px}
+.rnum.pos{color:var(--green)}.rnum.neg{color:var(--red)}
+.invest-proj{background:linear-gradient(135deg,#1a252f,#2c3e50);border-radius:var(--rl);padding:20px 22px;color:#fff;margin-bottom:16px}
+.ip-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.ip-sub{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:16px}
+.ip-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ip-cell{background:rgba(255,255,255,.08);border-radius:var(--r);padding:12px 14px;text-align:center}
+.ip-cell-label{font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.ip-cell-val{font-family:var(--mono);font-size:17px;font-weight:500;color:#6ee7a0}
+.ip-note{font-size:12px;color:rgba(255,255,255,.5);margin-top:12px;text-align:center}
+/* LEADERBOARD */
+.lbrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-100);font-size:14px}
+.lbrow:last-child{border-bottom:none}
+.lbrank{width:28px;text-align:center;font-size:16px;flex-shrink:0}
+.lbname{flex:1;font-weight:500}
+.lbbadge{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500;flex-shrink:0}
+.lbbal{font-family:var(--mono);font-size:13px;font-weight:500;flex-shrink:0}
+.month-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--navy);color:#fff;margin-left:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- WELCOME -->
+<div id="screen-welcome" class="screen active">
+  <div class="gh">
+    <h1>🗽 Survive the Month</h1>
+    <p>You're 22, living in NYC, just started your career.</p>
+    <div class="pill">$85,000/yr → $5,400/mo take-home</div>
+  </div>
+  <div class="card">
+    <div class="ct">Your name for the leaderboard</div>
+    <input type="text" id="player-name" placeholder="Name or nickname" maxlength="24"/>
+  </div>
+  <div class="card">
+    <div class="ct">Set up your life</div>
+    <p style="font-size:13px;color:var(--gray-600);margin-bottom:4px">These choices lock in your fixed monthly costs for all 4 months.</p>
+    <p style="font-size:12px;color:var(--red)">⚠ Everyone pays <strong>$250/mo in invisible costs</strong> — toiletries, random purchases, small stuff that adds up.</p>
+
+    <div class="sl">🏠 Housing & Transport</div>
+    <label class="fl">Where do you live?</label>
+    <div class="sw"><select id="housing" onchange="updatePreview()">
+      <option value="1600">Shared apartment, outer borough — $1,600/mo</option>
+      <option value="2200">Solo studio, outer borough — $2,200/mo</option>
+      <option value="3000">Solo apartment, popular neighborhood — $3,000/mo</option>
+    </select></div>
+    <label class="fl">How do you get around?</label>
+    <div class="sw"><select id="transit" onchange="updatePreview()">
+      <option value="132">Monthly MetroCard only — $132/mo</option>
+      <option value="310">MetroCard + frequent Ubers — $310/mo</option>
+      <option value="520">Mostly Ubers and cabs — $520/mo</option>
+    </select></div>
+
+    <div class="sl">🍽 Food & Lifestyle</div>
+    <label class="fl">How do you eat?</label>
+    <div class="sw"><select id="food" onchange="updatePreview()">
+      <option value="420">Mostly cook at home — $420/mo</option>
+      <option value="620">Mix of cooking and eating out — $620/mo</option>
+      <option value="900">Eat out most meals — $900/mo</option>
+    </select></div>
+    <label class="fl">Lifestyle subscriptions (Factor, Stitch Fix, wine clubs…)</label>
+    <div class="sw"><select id="lsubs" onchange="updatePreview()">
+      <option value="0">None — $0/mo</option>
+      <option value="80">A couple — $80/mo</option>
+      <option value="180">Several — $180/mo</option>
+    </select></div>
+    <label class="fl">Personal care (haircuts, skincare, beauty)</label>
+    <div class="sw"><select id="pcare" onchange="updatePreview()">
+      <option value="40">Bare minimum — $40/mo</option>
+      <option value="120">Regular upkeep — $120/mo</option>
+      <option value="250">Salon + full routine — $250/mo</option>
+    </select></div>
+    <label class="fl">Shopping (clothes, hobby items)</label>
+    <div class="sw"><select id="shopping" onchange="updatePreview()">
+      <option value="50">Almost nothing — $50/mo</option>
+      <option value="150">Moderate — $150/mo</option>
+      <option value="300">Regular shopping habit — $300/mo</option>
+    </select></div>
+
+    <div class="sl">💪 Health & Memberships</div>
+    <label class="fl">Health insurance (your share of employer plan)</label>
+    <div class="sw"><select id="insurance" onchange="updatePreview();checkIns()">
+      <option value="120" data-tier="basic">Basic plan, high deductible — $120/mo</option>
+      <option value="220" data-tier="standard">Standard plan — $220/mo</option>
+      <option value="380" data-tier="premium">Premium plan, low deductible — $380/mo</option>
+    </select></div>
+    <div class="iw" id="ins-warn">⚠ High deductible: when health events hit, your out-of-pocket costs will be significantly higher and low-cost options won't be available.</div>
+    <label class="fl">Memberships (gym, sports leagues, classes)</label>
+    <div class="sw"><select id="memberships" onchange="updatePreview()">
+      <option value="0">None — $0/mo</option>
+      <option value="30">Basic gym (Planet Fitness) — $30/mo</option>
+      <option value="125">Mid-tier gym or adult sports league — $125/mo</option>
+      <option value="300">Premium gym (Equinox, Lifetime) — $300+/mo</option>
+    </select></div>
+
+    <div class="sl">📱 Bills & Pets</div>
+    <label class="fl">Phone, utilities & base subscriptions</label>
+    <div class="sw"><select id="bills" onchange="updatePreview()">
+      <option value="220">Bare minimum — $220/mo</option>
+      <option value="340">Average setup — $340/mo</option>
+      <option value="480">Premium phone + lots of subscriptions — $480/mo</option>
+    </select></div>
+    <label class="fl">Do you have a pet?</label>
+    <div class="sw"><select id="pet" onchange="updatePreview()">
+      <option value="0" data-pet="none">No pet — $0/mo</option>
+      <option value="150" data-pet="cat">Cat — $150/mo</option>
+      <option value="220" data-pet="dog">Dog — $220/mo</option>
+    </select></div>
+
+    <div class="sl">💰 Emergency Fund</div>
+    <label class="fl">Set aside an emergency fund upfront?</label>
+    <div class="sw"><select id="savings" onchange="updatePreview()">
+      <option value="400">Yes — set aside $400</option>
+      <option value="150">Small cushion — $150</option>
+      <option value="0">No — spend it all</option>
+    </select></div>
+    <div class="prev" id="preview">
+      <span>Monthly fixed costs: <strong id="prev-fixed">—</strong></span>
+      <span>Left for events: <strong id="prev-left">—</strong></span>
+    </div>
+  </div>
+  <button class="btn btn-p" onclick="startGame()">Start Month 1 →</button>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <div class="hud">
+    <div class="hud-top">
+      <div>
+        <div class="hud-name" id="hud-name"></div>
+        <div class="hud-bal" id="hud-bal"></div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px" id="hud-month-label"></div>
+        <div class="wdots" id="wdots"></div>
+      </div>
+    </div>
+    <div class="hud-stats">
+      <div class="hs"><div class="hs-label">Emergency Fund</div><div class="hs-val gd" id="hs-ef"></div></div>
+      <div class="hs"><div class="hs-label">Invested</div><div class="hs-val gd" id="hs-inv"></div></div>
+      <div class="hs"><div class="hs-label">Debt</div><div class="hs-val neg" id="hs-debt"></div></div>
+    </div>
+  </div>
+  <div class="alert a-debt" id="alert-debt">⚠️ You're carrying credit card debt. Interest compounds at 3%/week.</div>
+  <div class="alert a-double" id="alert-double">⚡ Tough week. Life doesn't wait — you've got another event to deal with.</div>
+  <div class="alert a-efund" id="alert-efund"></div>
+  <div class="card">
+    <div class="ct">Fixed costs this week</div>
+    <div id="fixed-list"></div>
+    <div class="ftot"><span>Weekly total deducted</span><span class="famt" id="ftotal"></span></div>
+  </div>
+  <div class="card">
+    <span class="etag" id="etag"></span>
+    <div class="etitle" id="etitle"></div>
+    <div class="edesc" id="edesc"></div>
+    <div id="echoices"></div>
+  </div>
+  <div class="card">
+    <div class="ct">This month so far</div>
+    <div id="gamelog"><p style="font-size:13px;color:var(--gray-400)">No events yet.</p></div>
+  </div>
+</div>
+
+<!-- MONTH SUMMARY -->
+<div id="screen-month-summary" class="screen">
+  <div class="card">
+    <div class="ct" id="ms-title"></div>
+    <div class="msummary">
+      <div class="mstat-grid">
+        <div class="mstat"><div class="mstat-label">Final Balance</div><div class="mstat-val" id="ms-balance"></div></div>
+        <div class="mstat"><div class="mstat-label">Debt Carried</div><div class="mstat-val" id="ms-debt"></div></div>
+        <div class="mstat"><div class="mstat-label">Emergency Fund</div><div class="mstat-val pos" id="ms-ef"></div></div>
+        <div class="mstat"><div class="mstat-label">Total Invested</div><div class="mstat-val pos" id="ms-invested"></div></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:10px">Your 50/30/20 this month</div>
+        <div style="font-size:13px;color:var(--gray-600);margin-bottom:6px;display:flex;justify-content:space-between"><span>🏠 Needs</span><span id="ms-needs-pct"></span></div>
+        <div class="rule-bar"><div class="rule-fill" id="ms-needs-bar" style="background:var(--red)"></div></div>
+        <div style="font-size:13px;color:var(--gray-600);margin-bottom:6px;display:flex;justify-content:space-between"><span>🎉 Wants</span><span id="ms-wants-pct"></span></div>
+        <div class="rule-bar"><div class="rule-fill" id="ms-wants-bar" style="background:var(--yellow)"></div></div>
+        <div style="font-size:13px;color:var(--gray-600);margin-bottom:6px;display:flex;justify-content:space-between"><span>💰 Savings/Investments</span><span id="ms-savings-pct"></span></div>
+        <div class="rule-bar"><div class="rule-fill" id="ms-savings-bar" style="background:var(--green)"></div></div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:4px">Target: 50% needs / 30% wants / 20% savings</div>
+      </div>
+      <div id="surplus-section" style="display:none">
+        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:8px">You finished in the black! What do you do with the surplus?</div>
+        <div style="font-size:12px;color:var(--gray-600);margin-bottom:12px" id="surplus-amount-label"></div>
+        <div id="invest-options"></div>
+      </div>
+      <div id="debt-section" style="display:none">
+        <div style="background:var(--red-light);border:1px solid #f5c6c2;border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--red)">
+          <strong>⚠ Your debt rolls into next month with interest.</strong><br>
+          <span id="debt-rollover-msg"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn btn-p" id="next-month-btn" onclick="nextMonth()">Continue →</button>
+</div>
+
+<!-- FINAL RESULT -->
+<div id="screen-result" class="screen">
+  <div class="card">
+    <div class="rhero">
+      <div class="remoji" id="remoji"></div>
+      <div class="rtitle" id="rtitle"></div>
+      <div class="rdesc" id="rdesc"></div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+        <div class="rbox"><div class="rlabel">Final Balance</div><div class="rnum" id="rnum"></div></div>
+        <div class="rbox"><div class="rlabel">Total Invested</div><div class="rnum pos" id="r-invested"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="invest-proj" id="invest-proj" style="display:none">
+    <div class="ip-title">📈 What your investments could become</div>
+    <div class="ip-sub">Based on historical average market returns over time</div>
+    <div class="ip-grid" id="ip-grid"></div>
+    <div class="ip-note" id="ip-note"></div>
+  </div>
+  <div class="card">
+    <div class="ct">4-Month Review</div>
+    <div id="resultlog"></div>
+  </div>
+  <button class="btn btn-p" onclick="showLB()">See the leaderboard 🏆</button>
+  <button class="btn btn-s" onclick="resetGame()">Play again</button>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="screen-leaderboard" class="screen">
+  <div class="card">
+    <div class="ct">🏆 Class Leaderboard</div>
+    <p style="font-size:13px;color:var(--gray-600);margin-bottom:4px">Score = final balance + total invested. Everyone started with $5,400.</p>
+    <p style="font-size:12px;color:var(--gray-400);margin-bottom:16px">Investing counts — putting money away scores the same as keeping it in your pocket.</p>
+    <hr style="border:none;border-top:1px solid var(--border);margin-bottom:16px">
+    <div id="lbcontent"><p style="font-size:14px;color:var(--gray-400)">Loading...</p></div>
+  </div>
+  <button class="btn btn-s" onclick="resetGame()">Play again</button>
+</div>
+
+</div><!-- /wrap -->
+<script>
+const MONTHLY=5400, INVISIBLE=250;
+let G={}, LOG=[], MONTH_LOGS=[];
+
+// ── FULL EVENT DECK (50 events) ─────────────────────────────
+const EVENTS=[
+  // TEMPTATIONS
+  {id:'concert',title:"Your favorite artist drops a surprise NYC show",desc:"Tickets $160. Your whole friend group is going.",tag:'want',choices:[
+    {t:'Buy a ticket — $160',e:-160,n:'Concert ticket'},
+    {t:'Watch the livestream — $0',e:0,n:'Skipped the concert'},
+    {t:'Go but take early subway home — $172',e:-172,n:'Concert, left early'}]},
+  {id:'sneakers',title:"Limited sneaker drop",desc:"$220. Selling out in hours. Your friends already have theirs.",tag:'want',choices:[
+    {t:'Buy them — $220',e:-220,n:'Bought the sneakers'},
+    {t:'Pass this time — $0',e:0,n:'Passed on sneakers'},
+    {t:'Similar budget style — $85',e:-85,n:'Budget sneakers'}]},
+  {id:'philly',title:"Weekend trip to Philly — friend's birthday",desc:"Train + hotel split + meals: $340 total.",tag:'want',choices:[
+    {t:'Go all in — $340',e:-340,n:'Weekend trip to Philly'},
+    {t:'Skip it — $0',e:0,n:'Skipped Philly trip',sc:"Friends keep referencing inside jokes from the trip.",trig:'skipped_group'},
+    {t:'Day trip only — $110',e:-110,n:'Day trip to Philly'}]},
+  {id:'bday',title:"Close friend's birthday dinner",desc:"Nice restaurant. Your share + a gift: $160.",tag:'want',choices:[
+    {t:'All out — dinner + gift = $160',e:-160,n:'Birthday dinner + gift'},
+    {t:'Dinner only — $95',e:-95,n:'Birthday dinner, no gift'},
+    {t:'Skip it, homemade card — $0',e:0,n:'Skipped birthday dinner',sc:"She noticed you weren't there.",trig:'skipped_bday'}]},
+  {id:'splurge',title:"Rough week — you want to treat yourself",desc:"$120 solo dinner at a nice spot. No occasion.",tag:'want',choices:[
+    {t:'Do it — $120',e:-120,n:'Solo splurge dinner'},
+    {t:'Cook something nice — $30',e:-30,n:'Nice home-cooked dinner'},
+    {t:'Delivery + movie — $42',e:-42,n:'Delivery and movie night'}]},
+  {id:'gym_up',title:"You keep walking past Equinox",desc:"Right by your office. $200/month. Your current gym feels sad by comparison.",tag:'want',choices:[
+    {t:'Join Equinox — $200',e:-200,n:'Joined Equinox'},
+    {t:'Stay with current setup — $0',e:0,n:'Resisted gym upgrade'},
+    {t:'Try one drop-in first — $35',e:-35,n:'Equinox drop-in class'}]},
+  {id:'gadget',title:"Flash sale — earbuds you've been watching",desc:"Normally $180, today only $110.",tag:'want',choices:[
+    {t:'Buy them — $110',e:-110,n:'Bought earbuds on sale'},
+    {t:'Add to wishlist — $0',e:0,n:'Passed on earbuds'},
+    {t:'Off-brand version — $45',e:-45,n:'Budget earbuds'}]},
+  {id:'nightlife',title:"Friends going out Friday and Saturday night",desc:"Cover, drinks, late-night food — both nights: ~$180.",tag:'want',choices:[
+    {t:'Both nights — $180',e:-180,n:'Full weekend out'},
+    {t:'One night only — $90',e:-90,n:'One night out'},
+    {t:'Stay in — $0',e:0,n:'Stayed in all weekend',sc:"'You never come out anymore.'",trig:'skipped_nightlife'}]},
+  {id:'nightlife2',title:"Birthday — the whole crew is hitting the club",desc:"Table minimum, drinks, Uber home: ~$140.",tag:'want',choices:[
+    {t:'Go all out — $140',e:-140,n:'Night out at the club'},
+    {t:'Show up early, leave before it gets expensive — $50',e:-50,n:'Dipped out early from club'},
+    {t:'Hard pass — $0',e:0,n:'Skipped club night',sc:"They send memes about you being old."}]},
+  {id:'holiday_gifts',title:"The holidays hit — gifts for family and friends",desc:"You've got 6 people to buy for. Budget or not, you feel the pressure.",tag:'want',choices:[
+    {t:'Thoughtful gifts for everyone — $280',e:-280,n:'Holiday gifts for everyone'},
+    {t:'Immediate family only — $140',e:-140,n:'Holiday gifts, close family only'},
+    {t:'Heartfelt cards only — $20',e:-20,n:'Cards only for the holidays'}]},
+  {id:'black_friday',title:"Black Friday sale — your phone is sending notifications",desc:"Deals on a jacket, shoes, and home stuff. Total if you bite: $210.",tag:'want',choices:[
+    {t:'Buy everything — $210',e:-210,n:'Black Friday haul'},
+    {t:'Just the jacket — $80',e:-80,n:'Black Friday: jacket only'},
+    {t:'Close all the tabs — $0',e:0,n:'Resisted Black Friday'}]},
+  {id:'vday',title:"Valentine's Day is coming up",desc:"Whether you're in a relationship or celebrating with friends, there's pressure.",tag:'want',choices:[
+    {t:'Nice dinner + gift — $160',e:-160,n:"Valentine's Day dinner + gift"},
+    {t:'Homemade dinner, modest gift — $60',e:-60,n:"Valentine's Day, modest"},
+    {t:'Skip it entirely — $0',e:0,n:"Skipped Valentine's Day"}]},
+  {id:'wedding',title:"You got a wedding invitation",desc:"Friend from college. Flight + hotel + gift + outfit: $580.",tag:'want',choices:[
+    {t:'Attend — $580',e:-580,n:'Attended wedding'},
+    {t:'Attend, skip the hotel (crash with someone) — $320',e:-320,n:'Wedding, no hotel'},
+    {t:"Can't make it — send a $75 gift",e:-75,n:'Sent wedding gift, skipped attending'}]},
+  {id:'summer_concerts',title:"Summer concert series is back",desc:"3-show pass with your crew: $180.",tag:'want',choices:[
+    {t:'Get the pass — $180',e:-180,n:'Summer concert series pass'},
+    {t:'Pick one show — $65',e:-65,n:'One summer concert'},
+    {t:'Skip this year — $0',e:0,n:'Skipped summer concerts'}]},
+  {id:'new_years',title:"New Year's Eve plans are getting expensive",desc:"Everyone's going to a ticketed party. Entry + drinks: $150.",tag:'want',choices:[
+    {t:"Go to the party — $150",e:-150,n:"NYE party"},
+    {t:'Pre-game at a friend's place, skip the party — $30',e:-30,n:'NYE at friend place'},
+    {t:'Stay home, watch the ball drop — $0',e:0,n:'Stayed home for NYE'}]},
+  // WORK & SOCIAL
+  {id:'work_lunch',title:"Your team goes out to lunch twice a week",desc:"Every Tue and Thu: 8 lunches at $22 = $176 this month.",tag:'mixed',choices:[
+    {t:'Join every time — $176',e:-176,n:'All work lunches'},
+    {t:'Half the time, pack the rest — $88',e:-88,n:'Half work lunches'},
+    {t:'Always pack your lunch — $0',e:0,n:'Packed lunch every day',sc:'Team started leaving without you. Manager noticed.',trig:'skipped_work'}]},
+  {id:'happy_hour',title:"Office happy hour every Friday",desc:"4 Fridays, $25 each in drinks and bar food = $100.",tag:'mixed',choices:[
+    {t:'Attend every week — $100',e:-100,n:'All office happy hours'},
+    {t:'Go twice — $50',e:-50,n:'Two office happy hours'},
+    {t:'Skip all of them — $0',e:0,n:'Skipped office happy hours',sc:"You're becoming invisible to the team."}]},
+  {id:'office_gifts',title:"Office holiday gift exchange — $30 limit",desc:"It's technically optional. But everyone is doing it.",tag:'mixed',choices:[
+    {t:'Participate — $30',e:-30,n:'Office gift exchange'},
+    {t:'Opt out and explain — $0',e:0,n:'Opted out of gift exchange'},
+    {t:'Contribute to a group gift instead — $15',e:-15,n:'Contributed to group gift'}]},
+  {id:'work_supplies',title:"Your employer expects you to buy your own supplies",desc:"Laptop stand, keyboard, mouse: $145.",tag:'need',choices:[
+    {t:'Buy everything — $145',e:-145,n:'Bought work supplies'},
+    {t:'Bare minimum setup — $55',e:-55,n:'Minimal work supplies'},
+    {t:'Use what you have and make do — $0',e:0,n:'Made do with existing supplies'}]},
+  // UNEXPECTED NEEDS
+  {id:'work_shoes',title:"Your work shoes are destroyed",desc:"Sole peeling, hole forming. You cannot show up like this. No free option.",tag:'need',choices:[
+    {t:'Discount store — $120',e:-120,n:'Discount work shoes'},
+    {t:'Reasonable pair — $200',e:-200,n:'Decent work shoes'},
+    {t:'Nice pair that lasts — $350',e:-350,n:'Quality work shoes'}]},
+  {id:'metrocard',title:"MetroCard ran out mid-week",desc:"3 days from payday. Need to get to work. No free option.",tag:'need',choices:[
+    {t:'7-day unlimited — $34',e:-34,n:'7-day MetroCard'},
+    {t:'Pay per ride, 6 trips — $17',e:-17,n:'Pay-per-ride 3 days'},
+    {t:'Uber all week — $72',e:-72,n:'Ubered all week'}]},
+  {id:'parking',title:"Borrowed a friend's car, got a parking ticket",desc:"Forgot alternate side. Ticket: $115.",tag:'need',choices:[
+    {t:'Pay immediately — $115',e:-115,n:'Paid parking ticket'},
+    {t:'Contest online — free, 6 weeks',e:0,n:'Contesting parking ticket'},
+    {t:'Ignore it for now — doubles if unpaid',e:0,n:'Ignored ticket (risky)',followup:'Ignored ticket doubled: -$230',fuE:-230}]},
+  {id:'laundry',title:"Three weeks of laundry piled up",desc:"Laundromat raised prices. Total: $62.",tag:'need',choices:[
+    {t:'Do it all — $62',e:-62,n:'Caught up on laundry'},
+    {t:'Hand wash essentials — $0',e:0,n:'Hand washed only'},
+    {t:'Buy new basics instead — $95',e:-95,n:'Bought new clothes instead'}]},
+  {id:'rent_raise',title:"Landlord: rent going up $200",desc:"Lease is up. Market went up. You have to decide.",tag:'need',choices:[
+    {t:'Accept — $200 more this month',e:-200,n:'Accepted $200 rent increase'},
+    {t:'Negotiate — they agree to $120',e:-120,n:'Negotiated to $120 increase'},
+    {t:'Start apartment hunting — $80 in fees',e:-80,n:'Started apartment hunting'}]},
+  {id:'family',title:"Family member needs your help",desc:"Your mom needs $250 for a utility bill.",tag:'need',choices:[
+    {t:'Send $250',e:-250,n:'Sent $250 to family'},
+    {t:'Send half — $125',e:-125,n:'Sent $125 to family'},
+    {t:"Can't right now — $0",e:0,n:"Couldn't help family"}]},
+  {id:'subs',title:"Forgotten subscriptions auto-charged",desc:"Netflix, Hulu, meditation app, meal kit, gym you stopped going to. Total: $142.",tag:'mixed',choices:[
+    {t:'Cancel everything — $0',e:0,n:'Cancelled all forgotten subscriptions'},
+    {t:'Keep them all — $142',e:-142,n:'Kept all subscriptions'},
+    {t:'Cancel unused ones — $52',e:-52,n:'Trimmed to essentials'}]},
+  {id:'subway',title:"Subway delays all week — Ubers adding up",desc:"3 Ubers to work, surge pricing twice. Total: $89.",tag:'mixed',choices:[
+    {t:'Accept it — $89',e:-89,n:'Ubered through subway delays'},
+    {t:'Leave earlier, wait it out — $0',e:0,n:'Waited out delays'},
+    {t:'WFH 2 days, one subway day — $22',e:-22,n:'WFH during delays'}]},
+  {id:'tax',title:"Tax refund hit your account",desc:"$580 back from the IRS.",tag:'mixed',choices:[
+    {t:'All to emergency fund — +$580',e:580,n:'Tax refund → emergency fund',isEF:true},
+    {t:'Treat yourself — spend it all',e:-580,n:'Spent entire tax refund'},
+    {t:'Half saved, half fun — +$290',e:290,n:'Split tax refund',isEF:true,efAmt:290}]},
+  {id:'mouse',title:"Your apartment has a mouse problem",desc:"Landlord won't deal with it. Supplies + trap + exterminator: $95.",tag:'need',choices:[
+    {t:'Hire exterminator — $95',e:-95,n:'Hired exterminator for mouse'},
+    {t:'DIY traps — $25',e:-25,n:'DIY mouse traps'},
+    {t:'Ignore it and hope — $0',e:0,n:'Ignored mouse problem'}]},
+  {id:'roommate',title:"Your roommate is moving out next month",desc:"Need to cover the gap or find someone fast. Security overlap: $600.",tag:'need',choices:[
+    {t:'Cover the gap yourself — $600',e:-600,n:'Covered roommate gap'},
+    {t:'Find a replacement fast — $150 in ads + effort',e:-150,n:'Found new roommate quickly'},
+    {t:'Move to a solo place — $200 in moving costs',e:-200,n:'Moved to solo apartment'}]},
+  {id:'heat',title:"Heat in your apartment stopped working",desc:"It's January. Landlord is slow. Space heater + extra electric bill: $110.",tag:'need',choices:[
+    {t:'Buy a space heater, eat the electric bill — $110',e:-110,n:'Space heater for broken heat'},
+    {t:'Crash with a friend for a week — $0 but you owe a favor',e:0,n:'Crashed with friend during heat outage'},
+    {t:'Withhold rent until fixed — $0 now, legal risk',e:0,n:'Withheld rent for broken heat (risky)'}]},
+  {id:'coned',title:"ConEd bill spiked this month",desc:"Summer AC or winter heat — your bill is $180 instead of the usual $80.",tag:'need',choices:[
+    {t:'Pay it — $180',e:-180,n:'Paid spiked ConEd bill'},
+    {t:'Pay minimum, call to dispute — $80',e:-80,n:'Disputed ConEd spike'},
+    {t:'Put it on a payment plan — $60 now',e:-60,n:'ConEd payment plan'}]},
+  {id:'building_fee',title:"Building assessment fee notice",desc:"Your building needs a new boiler. Your share: $320.",tag:'need',choices:[
+    {t:'Pay in full — $320',e:-320,n:'Paid building assessment fee'},
+    {t:'Request a payment plan — $110 now',e:-110,n:'Building fee payment plan'},
+    {t:'Dispute with landlord — $0 now, uncertain outcome',e:0,n:'Disputed building assessment fee'}]},
+  {id:'deposit',title:"Moving — security deposit dispute",desc:"Old landlord is keeping $400 of your deposit. You can fight it or let it go.",tag:'need',choices:[
+    {t:'Take them to small claims court — $65 in fees, chance of full return',e:-65,n:'Small claims court for deposit'},
+    {t:'Negotiate, settle for $200 back',e:200,n:'Negotiated partial deposit return'},
+    {t:'Let it go — $0 effort, $400 lost',e:0,n:'Let landlord keep the deposit'}]},
+  // HEALTH
+  {id:'urgent',title:"You wake up sick — urgent care",desc:"Bad ear infection. You need to be seen.",tag:'health',
+   tiers:{
+    basic:[{t:'Urgent care — $420 (high deductible)',e:-420,n:'Urgent care (high deductible)'},{t:'ER — $680',e:-680,n:'ER visit (high deductible)'},{t:'Tough it out — risky',e:0,n:'Skipped care (risky)',followup:'Infection severe — ER: -$680',fuE:-680}],
+    standard:[{t:'Urgent care — $305',e:-305,n:'Urgent care + meds'},{t:'Telehealth + meds — $120',e:-120,n:'Telehealth + meds'},{t:'Tough it out — risky',e:0,n:'Skipped care (risky)',followup:'Infection worse — ER: -$480',fuE:-480}],
+    premium:[{t:'Urgent care — $180',e:-180,n:'Urgent care (premium plan)'},{t:'Telehealth + meds — $80',e:-80,n:'Telehealth + meds'},{t:'Tough it out — risky',e:0,n:'Skipped care (risky)',followup:'Infection worse — ER: -$320',fuE:-320}]
+   }},
+  {id:'dental',title:"Toothache that won't quit",desc:"Weeks of ignoring it. You need a filling.",tag:'health',
+   tiers:{
+    basic:[{t:'Filling now — $380 (high deductible)',e:-380,n:'Dental filling (high deductible)'},{t:'Delay — $0 now',e:0,n:'Delayed dental (risky)',followup:'Tooth cracked — crown: -$900',fuE:-900}],
+    standard:[{t:'Filling — $220',e:-220,n:'Dental filling'},{t:'Delay — $0 now',e:0,n:'Delayed dental (risky)',followup:'Crown needed: -$650',fuE:-650}],
+    premium:[{t:'Filling — $120',e:-120,n:'Dental filling (premium plan)'},{t:'Delay — $0 now',e:0,n:'Delayed dental (risky)',followup:'Crown needed: -$400',fuE:-400}]
+   }},
+  {id:'therapy',title:"You could really use therapy right now",desc:"Life has been stressful. Co-pay per session: depends on your plan.",tag:'health',
+   tiers:{
+    basic:[{t:'4 sessions this month — $240 (high deductible)',e:-240,n:'Therapy sessions (high deductible)'},{t:'2 sessions — $120',e:-120,n:'2 therapy sessions'},{t:'Skip therapy for now',e:0,n:'Skipped therapy'}],
+    standard:[{t:'4 sessions — $120',e:-120,n:'Therapy sessions'},{t:'2 sessions — $60',e:-60,n:'2 therapy sessions'},{t:'Skip therapy for now',e:0,n:'Skipped therapy'}],
+    premium:[{t:'4 sessions — $60',e:-60,n:'Therapy sessions (premium plan)'},{t:'2 sessions — $30',e:-30,n:'2 therapy sessions'},{t:'Skip therapy for now',e:0,n:'Skipped therapy'}]
+   }},
+  {id:'glasses',title:"Your glasses prescription is out of date",desc:"Eye exam + new lenses: depends on your plan.",tag:'health',
+   tiers:{
+    basic:[{t:'Full exam + glasses — $380',e:-380,n:'Eye exam + glasses (high deductible)'},{t:'Contacts only — $180',e:-180,n:'Contacts only (high deductible)'},{t:'Put it off — $0',e:0,n:'Delayed eye exam'}],
+    standard:[{t:'Exam + glasses — $200',e:-200,n:'Eye exam + glasses'},{t:'Contacts only — $90',e:-90,n:'Contacts only'},{t:'Put it off — $0',e:0,n:'Delayed eye exam'}],
+    premium:[{t:'Exam + glasses — $100',e:-100,n:'Eye exam + glasses (premium)'},{t:'Contacts only — $40',e:-40,n:'Contacts only'},{t:'Put it off — $0',e:0,n:'Delayed eye exam'}]
+   }},
+  // PETS
+  {id:'cat_vet',title:"Your cat is acting strange",desc:"Vet says infection — antibiotics and a follow-up needed.",tag:'pet_cat',choices:[
+    {t:'Full treatment — $420',e:-420,n:'Cat vet + full treatment'},
+    {t:'Basic exam + meds — $200',e:-200,n:'Cat vet, basic treatment'},
+    {t:'Wait and see — $0 now',e:0,n:'Delayed cat vet (risky)',followup:'Cat got worse — emergency vet: -$600',fuE:-600}]},
+  {id:'dog_vet',title:"Your dog ate something he shouldn't have",desc:"Emergency vet: X-rays, monitoring, possible treatment.",tag:'pet_dog',choices:[
+    {t:'Full emergency vet — $650',e:-650,n:'Dog emergency vet (full)'},
+    {t:'Emergency vet, decline extra — $400',e:-400,n:'Dog vet, basic emergency'},
+    {t:'Vet hotline + home monitoring — $45',e:-45,n:'Vet hotline + home monitoring'}]},
+  {id:'dog_board',title:"Weekend plans — who watches the dog?",desc:"2 nights boarding or a sitter.",tag:'pet_dog',choices:[
+    {t:'Boarding facility — $180',e:-180,n:'Dog boarding for weekend'},
+    {t:'Friend watches him — $80',e:-80,n:'Friend dog-sat'},
+    {t:'Cancel your plans — $0',e:0,n:'Cancelled plans for dog',sc:'Had to bail on friends again.'}]},
+  {id:'cat_supplies',title:"Your cat destroyed your couch cushion",desc:"Need a replacement + new scratching post to prevent repeat: $130.",tag:'pet_cat',choices:[
+    {t:'Replace cushion + scratching post — $130',e:-130,n:'Cat destroyed cushion — replaced'},
+    {t:'Just the scratching post — $40',e:-40,n:'Bought scratching post only'},
+    {t:'Live with the damage — $0',e:0,n:'Living with destroyed cushion'}]},
+  // SOCIAL CONSEQUENCES
+  {id:'cons_bday',title:"Your friend is still hurt you missed her birthday",desc:"Two weeks later. She's noticeably cooler.",tag:'social',isConsequence:true,consequenceFor:'skipped_bday',choices:[
+    {t:'Belated birthday dinner — $95',e:-95,n:'Belated birthday dinner to make it right'},
+    {t:'Flowers + card — $45',e:-45,n:'Flowers and card to apologize'},
+    {t:"Let it blow over — $0, friendship feels different",e:0,n:'Let birthday tension linger',sc:'The friendship has shifted.'}]},
+  {id:'cons_group',title:"Friends made plans without you — again",desc:"You skipped enough that they stopped asking. You found out on Instagram.",tag:'social',isConsequence:true,consequenceFor:'skipped_group',choices:[
+    {t:'Last-minute ticket to reconnect — $200',e:-200,n:'Last-minute ticket to reconnect with friends'},
+    {t:'Host a movie/game night — $60',e:-60,n:'Hosted game night to reconnect'},
+    {t:"Let it go — $0, distance grows",e:0,n:'Let friend group drift',sc:'You feel left out. Group chat is quieter for you.'}]},
+  {id:'cons_nightlife',title:"You skipped too many nights out — crew is drifting",desc:"Plans keep being made without you.",tag:'social',isConsequence:true,consequenceFor:'skipped_nightlife',choices:[
+    {t:'Last-minute concert ticket — $200',e:-200,n:'Last-minute ticket to reconnect with nightlife crew'},
+    {t:'Invite everyone over — $60',e:-60,n:'Hosted game night to reconnect'},
+    {t:"Let it go — $0, group keeps moving",e:0,n:'Let nightlife crew drift',sc:'You are slowly becoming "the friend who never comes out."'}]},
+  {id:'cons_work',title:"Your manager pulls you aside",desc:"Team feels you're not a team player. Eating alone every day.",tag:'social',isConsequence:true,consequenceFor:'skipped_work',choices:[
+    {t:'Bring donuts Monday — $40',e:-40,n:'Bought office donuts to smooth things over'},
+    {t:'Join lunches this week — $44',e:-44,n:'Rejoined work lunches to repair relationship'},
+    {t:"Explain you're saving — $0, outcome uncertain",e:0,n:'Explained lunch situation to manager',sc:'Manager seems understanding but team dynamic is still off.'}]},
+  // WINDFALLS
+  {id:'bonus',title:"Small bonus hit your account",desc:"$400 end-of-year or performance bonus. What do you do with it?",tag:'mixed',choices:[
+    {t:'Add to emergency fund — +$400',e:400,n:'Bonus → emergency fund',isEF:true},
+    {t:'Treat yourself — spend it',e:-400,n:'Spent the bonus'},
+    {t:'Half saved, half fun — +$200',e:200,n:'Split the bonus',isEF:true,efAmt:200}]},
+  {id:'side_hustle',title:"Friend asks if you can help with a freelance project",desc:"One weekend, $300 for design or writing work.",tag:'mixed',choices:[
+    {t:'Take the gig — earn +$300',e:300,n:'Completed freelance side gig'},
+    {t:'Too tired — pass',e:0,n:'Passed on side gig'},
+    {t:'Negotiate for $400 — take it or leave it',e:400,n:'Negotiated higher freelance rate'}]},
+];
+
+// ── HELPERS ──────────────────────────────────────────────────
+function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function fmtB(n){n=Math.round(n);return(n<0?'-$':'$')+Math.abs(n).toLocaleString();}
+function fmtD(n){return '$'+Math.round(Math.abs(n)).toLocaleString();}
+function getTier(){const s=document.getElementById('insurance');return s.options[s.selectedIndex].getAttribute('data-tier');}
+function getPet(){const s=document.getElementById('pet');return s.options[s.selectedIndex].getAttribute('data-pet');}
+function v(id){return +document.getElementById(id).value;}
+
+function checkIns(){document.getElementById('ins-warn').style.display=getTier()==='basic'?'block':'none';}
+
+function updatePreview(){
+  const total=v('housing')+v('transit')+v('food')+v('lsubs')+v('pcare')+v('shopping')+v('insurance')+v('memberships')+v('bills')+v('pet')+INVISIBLE;
+  const left=MONTHLY-total-v('savings');
+  document.getElementById('prev-fixed').textContent='$'+total.toLocaleString()+'/mo';
+  const el=document.getElementById('prev-left');
+  el.textContent='$'+Math.max(0,left).toLocaleString()+'/mo';
+  el.className=left<100?'danger':left<500?'warn':'ok';
+}
+updatePreview();
+
+// ── GAME START ────────────────────────────────────────────────
+function startGame(){
+  const name=(document.getElementById('player-name').value||'Student').trim();
+  const setup={
+    housing:v('housing'),transit:v('transit'),food:v('food'),lsubs:v('lsubs'),
+    pcare:v('pcare'),shopping:v('shopping'),insurance:v('insurance'),
+    memberships:v('memberships'),bills:v('bills'),petCost:v('pet'),
+    insuranceTier:getTier(),petType:getPet(),savings:v('savings')
+  };
+  const monthlyFixed=setup.housing+setup.transit+setup.food+setup.lsubs+setup.pcare+setup.shopping+setup.insurance+setup.memberships+setup.bills+setup.petCost+INVISIBLE;
+
+  G={
+    name,setup,monthlyFixed,weeklyFixed:Math.round(monthlyFixed/4),
+    balance:MONTHLY-setup.savings,
+    emergencyFund:setup.savings,
+    totalInvested:0,investType:null,
+    debt:0,month:1,week:1,
+    deck:[],deckIdx:0,
+    pendingFollowup:null,
+    eventsThisWeek:0,maxEventsThisWeek:0,
+    pendingConsequences:[],socialTrigs:[],
+    monthSpend:{needs:0,wants:0,savings:0},
+    isSecondaryEvent:false,
+  };
+  LOG=[]; MONTH_LOGS=[];
+  if(setup.savings>0) addLog('Set aside emergency fund',setup.savings,true);
+  buildDeck();
+  showScreen('game');
+  startWeek();
+}
+
+function buildDeck(){
+  const petType=G.setup.petType;
+  let pool=EVENTS.filter(e=>{
+    if(e.isConsequence) return false;
+    if(e.tag==='pet_cat'&&petType!=='cat') return false;
+    if(e.tag==='pet_dog'&&petType!=='dog') return false;
+    return true;
+  });
+  G.deck=shuffle(pool);
+  G.deckIdx=0;
+}
+
+// ── WEEK LOGIC ────────────────────────────────────────────────
+function startWeek(){
+  G.isSecondaryEvent=false;
+  G.eventsThisWeek=0;
+  // Determine how many events this week: min 2, +1 at 33%, +1 more at 33%
+  let max=2;
+  if(Math.random()<0.333) max++;
+  if(max===3&&Math.random()<0.333) max++;
+  G.maxEventsThisWeek=max;
+  document.getElementById('alert-double').style.display='none';
+  refreshHUD();
+  renderFixed();
+  renderLog('gamelog');
+  // Check pending consequences (fire in weeks 3-4 of a month)
+  if(G.pendingConsequences.length>0&&G.week>=3){
+    const trigId=G.pendingConsequences.shift();
+    const ce=EVENTS.find(e=>e.isConsequence&&e.consequenceFor===trigId);
+    if(ce){renderEvent(ce);return;}
+  }
+  renderEvent(nextEv());
+}
+
+function nextEv(){
+  // Reshuffle if deck exhausted
+  if(G.deckIdx>=G.deck.length) buildDeck();
+  return G.deck[G.deckIdx++];
+}
+
+function refreshHUD(){
+  document.getElementById('hud-name').textContent=G.name;
+  const b=document.getElementById('hud-bal');
+  b.textContent=fmtB(G.balance);
+  b.className='hud-bal'+(G.balance<0?' neg':'');
+  document.getElementById('hud-month-label').textContent=`Month ${G.month} of 4 — Week ${G.week} of 4`;
+  document.getElementById('alert-debt').style.display=G.debt>0?'block':'none';
+  document.getElementById('hs-ef').textContent=fmtD(G.emergencyFund);
+  document.getElementById('hs-inv').textContent=fmtD(G.totalInvested);
+  document.getElementById('hs-debt').textContent=G.debt>0?fmtD(G.debt):'$0';
+  const dots=document.getElementById('wdots');
+  dots.innerHTML='';
+  for(let i=1;i<=4;i++){
+    const d=document.createElement('div');
+    d.className='wd '+(i<G.week?'done':i===G.week?'active':'todo');
+    d.textContent='W'+i;
+    dots.appendChild(d);
+  }
+}
+
+function renderFixed(){
+  const s=G.setup;
+  let rows=[
+    {l:'Rent',a:Math.round(s.housing/4)},
+    {l:'Transit',a:Math.round(s.transit/4)},
+    {l:'Food',a:Math.round(s.food/4)},
+    {l:'Insurance + memberships + bills',a:Math.round((s.insurance+s.memberships+s.bills)/4)},
+    {l:'Lifestyle subs + personal care + shopping',a:Math.round((s.lsubs+s.pcare+s.shopping)/4)},
+    {l:'Invisible costs',a:Math.round(INVISIBLE/4)},
+  ];
+  if(s.petCost>0) rows.push({l:`Pet (${s.petType})`,a:Math.round(s.petCost/4)});
+  let html=rows.map(r=>`<div class="frow"><span>${r.l}</span><span class="famt">-$${r.a}</span></div>`).join('');
+  if(G.debt>0){
+    const int=Math.round(G.debt*0.03);
+    html+=`<div class="frow"><span style="color:var(--red)">⚠ Credit card interest (3% on ${fmtD(G.debt)})</span><span class="famt">-$${int}</span></div>`;
+  }
+  document.getElementById('fixed-list').innerHTML=html;
+  document.getElementById('ftotal').textContent='-$'+G.weeklyFixed.toLocaleString();
+}
+
+function renderEvent(ev){
+  let choices=ev.choices;
+  let desc=ev.desc;
+  if(ev.tag==='health'&&ev.tiers){
+    choices=ev.tiers[G.setup.insuranceTier];
+    const tl={'basic':'high deductible plan','standard':'standard plan','premium':'premium plan'}[G.setup.insuranceTier];
+    desc=ev.desc+` (You're on the ${tl}.)`;
+  }
+  const tagMap={
+    want:['🟢 Temptation','tw'],need:['🔴 Unexpected Need','tn'],mixed:['🟡 Heads Up','tm'],
+    health:['🏥 Health Event','tn'],social:['💬 Social Consequence','ts'],
+    pet_cat:['🐱 Pet Emergency','tp'],pet_dog:['🐶 Pet Emergency','tp'],
+  };
+  const [label,cls]=tagMap[ev.tag]||['Event','tm'];
+  const tag=document.getElementById('etag');
+  tag.textContent=label; tag.className='etag '+cls;
+  document.getElementById('etitle').textContent=ev.title;
+  document.getElementById('edesc').textContent=desc;
+  const ce=document.getElementById('echoices');
+  ce.innerHTML='';
+
+  // Check if emergency fund can be used (balance negative risk or it's a need/health)
+  const canUseEF=G.emergencyFund>=500&&(ev.tag==='need'||ev.tag==='health'||ev.tag==='pet_cat'||ev.tag==='pet_dog');
+  if(canUseEF){
+    const efAlert=document.getElementById('alert-efund');
+    efAlert.textContent=`💚 You have $${Math.round(G.emergencyFund).toLocaleString()} in your emergency fund — you can use it for this expense.`;
+    efAlert.style.display='block';
+  } else {
+    document.getElementById('alert-efund').style.display='none';
+  }
+
+  choices.forEach((c,i)=>{
+    const btn=document.createElement('button');
+    btn.className='cbtn';
+    let inner=`<span class="clbl">${['A','B','C','D'][i]}.</span> ${c.t}`;
+    if(c.sc) inner+=`<span class="sc">💬 ${c.sc}</span>`;
+    btn.innerHTML=inner;
+    btn.onclick=()=>pick(c,ev);
+    ce.appendChild(btn);
+  });
+
+  // EF option if eligible
+  if(canUseEF){
+    const efBtn=document.createElement('button');
+    efBtn.className='cbtn ef-option';
+    efBtn.innerHTML=`<span class="clbl">💚</span> Use emergency fund to cover this expense — $0 out of pocket`;
+    efBtn.onclick=()=>pickEF(ev);
+    ce.appendChild(efBtn);
+  }
+}
+
+function renderLog(id){
+  const el=document.getElementById(id);
+  if(LOG.length===0){el.innerHTML='<p style="font-size:13px;color:var(--gray-400)">No events yet.</p>';return;}
+  el.innerHTML=LOG.slice().reverse().map(e=>`<div class="le"><span class="ln">${e.t}</span><span class="la ${e.neg?'neg':'pos'}">${e.neg?'-':'+'}$${Math.abs(e.a).toLocaleString()}</span></div>`).join('');
+}
+
+function addLog(t,a,neg){LOG.push({t,a,neg});}
+
+// ── PICK HANDLERS ─────────────────────────────────────────────
+function pick(choice,ev){
+  const effect=choice.e;
+  addLog(choice.n,Math.abs(effect),effect<0);
+  G.balance+=effect;
+
+  // Emergency fund additions
+  if(choice.isEF){
+    const amt=choice.efAmt||Math.abs(effect);
+    G.emergencyFund+=amt;
+  }
+
+  // Categorize spend for 50/30/20
+  const needTags=['need','health','pet_cat','pet_dog'];
+  const wantTags=['want'];
+  if(effect<0){
+    if(needTags.includes(ev.tag)) G.monthSpend.needs+=Math.abs(effect);
+    else if(wantTags.includes(ev.tag)) G.monthSpend.wants+=Math.abs(effect);
+  }
+
+  if(choice.trig&&!G.socialTrigs.includes(choice.trig)){
+    G.socialTrigs.push(choice.trig);
+    G.pendingConsequences.push(choice.trig);
+  }
+  if(choice.followup&&choice.fuE) G.pendingFollowup={t:choice.followup,a:Math.abs(choice.fuE),e:choice.fuE};
+
+  G.eventsThisWeek++;
+  refreshHUD();
+  renderLog('gamelog');
+
+  if(G.eventsThisWeek<G.maxEventsThisWeek&&G.deck.length>0){
+    document.getElementById('alert-double').style.display='block';
+    document.getElementById('alert-double').textContent=G.eventsThisWeek===1?'⚡ Tough week. Life doesn\'t wait — another event is coming.':'⚡ Still not done. One more event this week.';
+    window.scrollTo(0,0);
+    renderEvent(nextEv());
+  } else {
+    closeWeek();
+  }
+}
+
+function pickEF(ev){
+  // Use emergency fund — find the most expensive need-style choice and use that as the "cost" deducted from EF
+  const choices=ev.choices||ev.tiers?.[G.setup.insuranceTier]||[];
+  const maxCost=Math.max(...choices.map(c=>Math.abs(c.e||0)));
+  const deduct=Math.min(maxCost,G.emergencyFund);
+  G.emergencyFund=Math.max(0,G.emergencyFund-deduct);
+  addLog(`Used emergency fund for: ${ev.title}`,deduct,false);
+  G.eventsThisWeek++;
+  document.getElementById('alert-efund').style.display='none';
+  refreshHUD();
+  renderLog('gamelog');
+  if(G.eventsThisWeek<G.maxEventsThisWeek){
+    document.getElementById('alert-double').style.display='block';
+    document.getElementById('alert-double').textContent='⚡ Tough week. Another event coming.';
+    window.scrollTo(0,0);
+    renderEvent(nextEv());
+  } else {
+    closeWeek();
+  }
+}
+
+function closeWeek(){
+  G.balance-=G.weeklyFixed;
+  G.monthSpend.needs+=G.weeklyFixed; // fixed costs = needs
+  addLog('Weekly fixed costs deducted',G.weeklyFixed,true);
+  if(G.balance<0){
+    G.debt=Math.abs(G.balance);
+    const int=Math.round(G.debt*0.03);
+    G.balance-=int;
+    addLog('Credit card interest',int,true);
+  } else {G.debt=0;}
+  if(G.pendingFollowup&&G.week>=2){
+    G.balance+=G.pendingFollowup.e;
+    addLog(G.pendingFollowup.t,G.pendingFollowup.a,true);
+    G.pendingFollowup=null;
+  }
+  document.getElementById('alert-double').style.display='none';
+  G.week++;
+  if(G.week>4) endMonth();
+  else startWeek();
+}
+
+// ── MONTH END ─────────────────────────────────────────────────
+function endMonth(){
+  // Save month log snapshot
+  MONTH_LOGS.push({month:G.month,balance:G.balance,debt:G.debt,ef:G.emergencyFund,invested:G.totalInvested,spend:{...G.monthSpend}});
+
+  // 50/30/20 calculation
+  const totalSpend=G.monthSpend.needs+G.monthSpend.wants;
+  const needsPct=totalSpend>0?Math.round(G.monthSpend.needs/MONTHLY*100):0;
+  const wantsPct=totalSpend>0?Math.round(G.monthSpend.wants/MONTHLY*100):0;
+  const savPct=Math.max(0,Math.round((G.emergencyFund/MONTHLY)*100+(G.totalInvested/MONTHLY)*100/G.month));
+
+  document.getElementById('ms-title').textContent=`Month ${G.month} Complete`;
+  const balEl=document.getElementById('ms-balance');
+  balEl.textContent=fmtB(G.balance);
+  balEl.className='mstat-val '+(G.balance>=0?'pos':'neg');
+  const debtEl=document.getElementById('ms-debt');
+  debtEl.textContent=G.debt>0?fmtD(G.debt):'None';
+  debtEl.className='mstat-val '+(G.debt>0?'neg':'pos');
+  document.getElementById('ms-ef').textContent=fmtD(G.emergencyFund);
+  document.getElementById('ms-invested').textContent=fmtD(G.totalInvested);
+  document.getElementById('ms-needs-pct').textContent=needsPct+'% (target: 50%)';
+  document.getElementById('ms-wants-pct').textContent=wantsPct+'% (target: 30%)';
+  document.getElementById('ms-savings-pct').textContent=savPct+'% (target: 20%)';
+  document.getElementById('ms-needs-bar').style.width=Math.min(100,needsPct)+'%';
+  document.getElementById('ms-wants-bar').style.width=Math.min(100,wantsPct)+'%';
+  document.getElementById('ms-savings-bar').style.width=Math.min(100,savPct)+'%';
+
+  // Surplus or debt section
+  const surplus=G.balance;
+  if(surplus>0){
+    document.getElementById('surplus-section').style.display='block';
+    document.getElementById('debt-section').style.display='none';
+    document.getElementById('surplus-amount-label').textContent=`You have $${Math.round(surplus).toLocaleString()} left over. Choose how to use it:`;
+    renderInvestOptions(surplus);
+  } else {
+    document.getElementById('surplus-section').style.display='none';
+    document.getElementById('debt-section').style.display='block';
+    const interest=Math.round(Math.abs(surplus)*0.03);
+    document.getElementById('debt-rollover-msg').textContent=`Your $${Math.round(Math.abs(surplus)).toLocaleString()} debt rolls into Month ${G.month+1} with an additional $${interest} in interest added.`;
+  }
+
+  if(G.month===4){
+    document.getElementById('next-month-btn').textContent='See final results →';
+  } else {
+    document.getElementById('next-month-btn').textContent=`Start Month ${G.month+1} →`;
+  }
+
+  showScreen('month-summary');
+}
+
+const INVEST_TYPES=[
+  {id:'401k',name:'401(k)',rate:0.07,desc:'Pre-tax contributions. Reduces your taxable income now — real savings at $85k in NYC. Employer may match (free money). Locked until age 59½.',rateLabel:'~7% avg annual return'},
+  {id:'roth',name:'Roth IRA',rate:0.07,desc:'After-tax contributions — no tax break now, but all growth and withdrawals are tax-free in retirement. Can withdraw your contributions (not earnings) anytime without penalty. Best if you expect a higher tax bracket later.',rateLabel:'~7% avg annual return'},
+  {id:'hysa',name:'High-Yield Savings',rate:0.045,desc:'Fully accessible at any time. No tax advantage. Currently earning ~4.5% APY. Lower long-term growth but maximum flexibility.',rateLabel:'~4.5% APY'},
+];
+
+function renderInvestOptions(surplus){
+  const container=document.getElementById('invest-options');
+  container.innerHTML='';
+  INVEST_TYPES.forEach(type=>{
+    const btn=document.createElement('button');
+    btn.className='btn-invest';
+    btn.id='inv-'+type.id;
+    btn.innerHTML=`<div class="ititle">${type.name}</div><div class="idesc">${type.desc}</div><div class="irate" style="color:var(--green)">${type.rateLabel}</div>`;
+    btn.onclick=()=>selectInvest(type.id,surplus);
+    container.appendChild(btn);
+  });
+  // Roll to next month
+  const rollBtn=document.createElement('button');
+  rollBtn.className='btn-invest';
+  rollBtn.id='inv-roll';
+  rollBtn.innerHTML=`<div class="ititle">💵 Keep as cash</div><div class="idesc">Roll the full surplus into next month's balance. No investment growth, but maximum flexibility.</div>`;
+  rollBtn.onclick=()=>selectInvest('roll',surplus);
+  container.appendChild(rollBtn);
+}
+
+let selectedInvestId=null;
+function selectInvest(id,surplus){
+  selectedInvestId=id;
+  document.querySelectorAll('.btn-invest').forEach(b=>b.classList.remove('selected'));
+  const el=document.getElementById('inv-'+id);
+  if(el) el.classList.add('selected');
+  document.getElementById('next-month-btn').textContent=G.month===4?'See final results →':`Start Month ${G.month+1} →`;
+}
+
+function nextMonth(){
+  // Apply surplus decision
+  if(G.balance>0&&selectedInvestId){
+    const surplus=G.balance;
+    if(selectedInvestId==='roll'){
+      // keep balance as-is
+    } else if(selectedInvestId==='hysa'||selectedInvestId==='401k'||selectedInvestId==='roth'){
+      G.totalInvested+=surplus;
+      if(!G.investType) G.investType=selectedInvestId;
+      G.balance=0;
+      addLog(`Invested surplus in ${selectedInvestId.toUpperCase()}`,surplus,false);
+    }
+  } else if(G.balance>0&&!selectedInvestId){
+    // Default: roll to next month if no selection made
+  }
+
+  // Apply debt rollover with interest
+  if(G.balance<0){
+    const rollInterest=Math.round(Math.abs(G.balance)*0.03);
+    G.balance-=rollInterest;
+    addLog(`Debt rolled to Month ${G.month+1} with interest`,rollInterest,true);
+  }
+
+  selectedInvestId=null;
+  // Reset month tracking
+  G.monthSpend={needs:0,wants:0,savings:0};
+  G.month++;
+  G.week=1;
+  G.pendingConsequences=[];
+  G.socialTrigs=[];
+
+  if(G.month>4){
+    endGame();
+  } else {
+    buildDeck();
+    showScreen('game');
+    startWeek();
+  }
+}
+
+// ── FINAL RESULT ──────────────────────────────────────────────
+async function endGame(){
+  showScreen('result');
+  const b=G.balance;
+  const invested=G.totalInvested;
+  const score=b+invested;
+
+  let emoji,title,desc;
+  if(score>=4000){emoji='🚀';title='Financial Star';desc="Four months in NYC and you came out ahead — cash in hand AND money working for you. That's the move.";}
+  else if(score>=2000){emoji='🎉';title='Solid Finish';desc="You ended with more than you started with in one form or another. Real discipline in a tough city.";}
+  else if(score>=500){emoji='😊';title='Getting By';desc="You made it through four months. Some rough patches, but you survived and learned.";}
+  else if(score>=0){emoji='😅';title='Barely Standing';desc="You made it — but just barely. NYC is relentless and so is debt.";}
+  else{emoji='😰';title='In the Hole';desc="Four months of NYC living caught up with you. The debt is real. So is the lesson.";}
+
+  document.getElementById('remoji').textContent=emoji;
+  document.getElementById('rtitle').textContent=title;
+  document.getElementById('rdesc').textContent=desc;
+  const rn=document.getElementById('rnum');
+  rn.textContent=fmtB(b);
+  rn.className='rnum '+(b<0?'neg':'pos');
+  document.getElementById('r-invested').textContent=fmtD(invested);
+
+  // Investment projection
+  if(invested>0){
+    document.getElementById('invest-proj').style.display='block';
+    const typeObj=INVEST_TYPES.find(t=>t.id===G.investType)||INVEST_TYPES[0];
+    const rate=typeObj.rate;
+    const monthly=invested/4; // avg monthly contribution
+    function futureVal(mo,r,years){
+      const n=years*12;
+      const mr=r/12;
+      return mo*((Math.pow(1+mr,n)-1)/mr);
+    }
+    const p10=futureVal(monthly,rate,10);
+    const p20=futureVal(monthly,rate,20);
+    const p30=futureVal(monthly,rate,30);
+    const p40=futureVal(monthly,rate,40);
+    const grid=document.getElementById('ip-grid');
+    grid.innerHTML=[
+      {l:'In 10 years',v:p10},{l:'In 20 years',v:p20},
+      {l:'In 30 years',v:p30},{l:'In 40 years',v:p40}
+    ].map(x=>`<div class="ip-cell"><div class="ip-cell-label">${x.l}</div><div class="ip-cell-val">$${Math.round(x.v).toLocaleString()}</div></div>`).join('');
+    document.getElementById('ip-note').textContent=`Based on investing ~$${Math.round(monthly).toLocaleString()}/mo in a ${typeObj.name} at ${(rate*100).toFixed(1)}% avg annual return. Starting early changes everything.`;
+  }
+
+  // Result log from monthly snapshots
+  const rl=document.getElementById('resultlog');
+  rl.innerHTML=MONTH_LOGS.map(m=>`
+    <div class="le" style="flex-direction:column;align-items:flex-start;gap:4px;padding:10px 0">
+      <div style="font-weight:600;color:var(--navy);font-size:14px">Month ${m.month}</div>
+      <div style="font-size:13px;color:var(--gray-600)">Balance: <span class="la ${m.balance>=0?'pos':'neg'}" style="font-size:13px">${fmtB(m.balance)}</span> &nbsp;|&nbsp; Debt: <span style="color:${m.debt>0?'var(--red)':'var(--gray-400)'}">${m.debt>0?fmtD(m.debt):'None'}</span> &nbsp;|&nbsp; EF: ${fmtD(m.ef)}</div>
+    </div>`).join('');
+
+  await saveScore(G.name,b,invested,score);
+}
+
+async function saveScore(name,balance,invested,score){
+  try{
+    let scores=[];
+    try{const d=await window.storage.get('stm_v4');if(d)scores=JSON.parse(d.value);}catch(e){}
+    scores=scores.filter(s=>s.name!==name);
+    scores.push({name,balance:Math.round(balance),invested:Math.round(invested),score:Math.round(score),ts:Date.now()});
+    scores.sort((a,b)=>b.score-a.score);
+    scores=scores.slice(0,30);
+    await window.storage.set('stm_v4',JSON.stringify(scores));
+  }catch(e){console.log('storage err',e);}
+}
+
+async function showLB(){
+  showScreen('leaderboard');
+  try{
+    let scores=[];
+    try{const d=await window.storage.get('stm_v4');if(d)scores=JSON.parse(d.value);}catch(e){}
+    const el=document.getElementById('lbcontent');
+    if(!scores.length){el.innerHTML='<p style="font-size:14px;color:var(--gray-400)">No scores yet!</p>';return;}
+    const medals=['🥇','🥈','🥉'];
+    el.innerHTML=scores.map((s,i)=>{
+      const sc=s.score;
+      let badge,bg,tc;
+      if(sc>=4000){badge='Financial Star';bg='var(--blue-light)';tc='var(--blue)';}
+      else if(sc>=2000){badge='Solid Finish';bg:'var(--green-light)';bg='var(--green-light)';tc='var(--green)';}
+      else if(sc>=500){badge='Getting By';bg='var(--yellow-light)';tc='var(--yellow)';}
+      else{badge='In the Hole';bg='var(--red-light)';tc='var(--red)';}
+      return `<div class="lbrow">
+        <span class="lbrank">${i<3?medals[i]:i+1}</span>
+        <span class="lbname">${s.name}</span>
+        <span class="lbbadge" style="background:${bg};color:${tc}">${badge}</span>
+        <span class="lbbal" style="color:${sc<0?'var(--red)':'var(--green)'}">Score: ${fmtB(sc)}</span>
+      </div>`;
+    }).join('');
+  }catch(e){document.getElementById('lbcontent').innerHTML='<p style="font-size:14px;color:var(--gray-400)">Leaderboard unavailable.</p>';}
+}
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');window.scrollTo(0,0);}
+function resetGame(){showScreen('welcome');}
+</script>
+</body>
+</html>
