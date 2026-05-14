@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Survive the Month — NYC Budget Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #1a7f3c;
+    --green-light: #d4edda;
+    --red: #c0392b;
+    --red-light: #fdecea;
+    --yellow: #8a6d0b;
+    --yellow-light: #fff8e1;
+    --navy: #2c3e50;
+    --navy-mid: #34495e;
+    --gray-100: #f4f6f8;
+    --gray-200: #e8ecef;
+    --gray-400: #9aa3ad;
+    --gray-600: #5a6472;
+    --text: #1a202c;
+    --border: #dde3ea;
+    --white: #ffffff;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  body {
+    font-family: var(--font);
+    color: var(--text);
+    background: #f0f2f5;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .game-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .game-header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+
+  .game-header p {
+    color: var(--gray-600);
+    font-size: 14px;
+  }
+
+  .salary-pill {
+    display: inline-block;
+    background: var(--navy);
+    color: white;
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    margin-top: 10px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 14px;
+  }
+
+  /* FORM ELEMENTS */
+  label.field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-bottom: 5px;
+    margin-top: 14px;
+  }
+
+  label.field-label:first-of-type { margin-top: 0; }
+
+  input[type="text"], select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text);
+    background: var(--white);
+    appearance: none;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+
+  input[type="text"]:focus, select:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(44,62,80,0.1);
+  }
+
+  .select-wrap {
+    position: relative;
+  }
+
+  .select-wrap::after {
+    content: "▾";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--gray-400);
+    font-size: 13px;
+  }
+
+  /* BUDGET PREVIEW */
+  .budget-preview {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: var(--gray-100);
+    border-radius: var(--radius);
+    font-size: 13px;
+    color: var(--gray-600);
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .budget-preview strong {
+    font-family: var(--mono);
+    font-size: 14px;
+  }
+
+  .budget-preview .ok { color: var(--green); }
+  .budget-preview .warn { color: #d97706; }
+  .budget-preview .danger { color: var(--red); }
+
+  /* BUTTONS */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 12px 20px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: var(--navy);
+    color: white;
+  }
+
+  .btn-primary:hover { background: #1a252f; }
+
+  .btn-secondary {
+    background: var(--gray-100);
+    color: var(--navy);
+    border: 1px solid var(--border);
+    margin-top: 10px;
+  }
+
+  .btn-secondary:hover { background: var(--gray-200); }
+
+  /* SCREENS */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* GAME HUD */
+  .hud {
+    background: var(--navy);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+  }
+
+  .hud-name {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 2px;
+  }
+
+  .hud-balance {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -1px;
+  }
+
+  .hud-balance.negative { color: #ff7f7f; }
+
+  .week-dots {
+    display: flex;
+    gap: 8px;
+  }
+
+  .week-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .week-dot.done { background: rgba(26,127,60,0.3); color: #6ee7a0; }
+  .week-dot.active { background: white; color: var(--navy); }
+  .week-dot.todo { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); }
+
+  /* DEBT WARNING */
+  .debt-warning {
+    background: var(--red-light);
+    border: 1px solid #f5c6c2;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--red);
+    margin-bottom: 14px;
+    display: none;
+  }
+
+  /* FIXED COSTS */
+  .fixed-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .fixed-row:last-child { border-bottom: none; }
+  .fixed-row .amount { font-family: var(--mono); font-size: 13px; color: var(--red); }
+  .fixed-row .interest { color: var(--red); font-size: 13px; }
+
+  .fixed-total {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 10px;
+    margin-top: 4px;
+    font-weight: 600;
+    font-size: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .fixed-total .amount { font-family: var(--mono); color: var(--red); }
+
+  /* EVENT CARD */
+  .event-type-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+
+  .tag-temptation { background: var(--green-light); color: var(--green); }
+  .tag-need { background: var(--red-light); color: var(--red); }
+  .tag-headsup { background: var(--yellow-light); color: var(--yellow); }
+
+  .event-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .event-desc {
+    font-size: 14px;
+    color: var(--gray-600);
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+
+  .choice-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 11px 14px;
+    margin-bottom: 8px;
+    background: var(--gray-100);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text);
+    transition: all 0.12s;
+    line-height: 1.4;
+  }
+
+  .choice-btn:last-child { margin-bottom: 0; }
+
+  .choice-btn:hover {
+    background: var(--white);
+    border-color: var(--navy);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .choice-btn:active { transform: scale(0.99); }
+
+  .choice-label {
+    display: inline-block;
+    font-weight: 600;
+    color: var(--navy);
+    margin-right: 6px;
+    font-size: 13px;
+  }
+
+  /* EVENT LOG */
+  .log-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--gray-600);
+    border-bottom: 1px solid var(--gray-100);
+    gap: 12px;
+  }
+
+  .log-entry:last-child { border-bottom: none; }
+  .log-entry .log-name { flex: 1; }
+  .log-amount { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+  .log-amount.neg { color: var(--red); }
+  .log-amount.pos { color: var(--green); }
+
+  /* RESULT */
+  .result-hero {
+    text-align: center;
+    padding: 24px 20px 20px;
+  }
+
+  .result-emoji { font-size: 52px; margin-bottom: 12px; }
+
+  .result-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .result-desc {
+    font-size: 14px;
+    color: var(--gray-600);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .final-balance-box {
+    display: inline-block;
+    background: var(--gray-100);
+    border-radius: var(--radius);
+    padding: 14px 28px;
+  }
+
+  .final-balance-label {
+    font-size: 11px;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+
+  .final-balance-num {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -1px;
+  }
+
+  .final-balance-num.positive { color: var(--green); }
+  .final-balance-num.negative { color: var(--red); }
+
+  /* LEADERBOARD */
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 14px;
+  }
+
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank { width: 28px; text-align: center; font-size: 16px; flex-shrink: 0; }
+  .lb-name { flex: 1; font-weight: 500; }
+
+  .lb-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .lb-balance {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  /* DIVIDER */
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0 16px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- WELCOME SCREEN -->
+<div id="screen-welcome" class="screen active">
+  <div class="game-header">
+    <h1>🗽 Survive the Month</h1>
+    <p>You're 22, living in NYC, just started your career.</p>
+    <div class="salary-pill">$85,000/yr → $5,400/mo take-home</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Your name for the leaderboard</div>
+    <input type="text" id="player-name" placeholder="Name or nickname" maxlength="24" />
+  </div>
+
+  <div class="card">
+    <div class="card-title">Set up your life</div>
+    <p style="font-size:13px;color:var(--gray-600);margin-bottom:14px">These choices lock in your fixed monthly costs before anything happens.</p>
+
+    <label class="field-label">Where do you live?</label>
+    <div class="select-wrap">
+      <select id="housing" onchange="updatePreview()">
+        <option value="1400">Shared apartment, outer borough — $1,400/mo</option>
+        <option value="2100">Solo studio, outer borough — $2,100/mo</option>
+        <option value="2800">Solo apartment, popular neighborhood — $2,800/mo</option>
+      </select>
+    </div>
+
+    <label class="field-label">How do you get around?</label>
+    <div class="select-wrap">
+      <select id="transit" onchange="updatePreview()">
+        <option value="132">Monthly MetroCard only — $132/mo</option>
+        <option value="310">MetroCard + frequent Ubers — $310/mo</option>
+        <option value="520">Mostly Ubers and cabs — $520/mo</option>
+      </select>
+    </div>
+
+    <label class="field-label">How do you eat?</label>
+    <div class="select-wrap">
+      <select id="food" onchange="updatePreview()">
+        <option value="420">Mostly cook at home — $420/mo</option>
+        <option value="620">Mix of cooking and eating out — $620/mo</option>
+        <option value="900">Eat out most meals — $900/mo</option>
+      </select>
+    </div>
+
+    <label class="field-label">Phone, utilities &amp; subscriptions</label>
+    <div class="select-wrap">
+      <select id="bills" onchange="updatePreview()">
+        <option value="220">Bare minimum — $220/mo</option>
+        <option value="340">Average setup — $340/mo</option>
+        <option value="480">Premium phone + lots of subscriptions — $480/mo</option>
+      </select>
+    </div>
+
+    <label class="field-label">Emergency fund upfront?</label>
+    <div class="select-wrap">
+      <select id="savings" onchange="updatePreview()">
+        <option value="400">Yes — set aside $400</option>
+        <option value="150">Small cushion — $150</option>
+        <option value="0">No — spend it all</option>
+      </select>
+    </div>
+
+    <div class="budget-preview" id="budget-preview">
+      <span>Fixed costs: <strong id="preview-fixed">—</strong></span>
+      <span>Left for everything else: <strong id="preview-left">—</strong></span>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="startGame()">Start the month →</button>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="screen-game" class="screen">
+  <div class="hud">
+    <div>
+      <div class="hud-name" id="player-display"></div>
+      <div class="hud-balance" id="balance-display"></div>
+    </div>
+    <div class="week-dots" id="week-dots"></div>
+  </div>
+
+  <div class="debt-warning" id="debt-warning">
+    ⚠️ You're carrying credit card debt. Interest compounds at 3%/week.
+  </div>
+
+  <div class="card">
+    <div class="card-title">Fixed costs this week</div>
+    <div id="fixed-costs-list"></div>
+    <div class="fixed-total">
+      <span>Weekly total deducted</span>
+      <span class="amount" id="fixed-total-amt"></span>
+    </div>
+  </div>
+
+  <div class="card" id="event-card">
+    <span class="event-type-tag" id="event-tag"></span>
+    <div class="event-title" id="event-title"></div>
+    <div class="event-desc" id="event-desc"></div>
+    <div id="event-choices"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Month so far</div>
+    <div id="event-log"><p style="font-size:13px;color:var(--gray-400)">No events yet.</p></div>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="screen-result" class="screen">
+  <div class="card">
+    <div class="result-hero">
+      <div class="result-emoji" id="result-emoji"></div>
+      <div class="result-title" id="result-title"></div>
+      <div class="result-desc" id="result-desc"></div>
+      <div class="final-balance-box">
+        <div class="final-balance-label">Final balance</div>
+        <div class="final-balance-num" id="result-balance"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Your month in review</div>
+    <div id="result-log"></div>
+  </div>
+
+  <button class="btn btn-primary" onclick="showLeaderboard()">See the leaderboard 🏆</button>
+  <button class="btn btn-secondary" onclick="resetGame()">Play again</button>
+</div>
+
+<!-- LEADERBOARD SCREEN -->
+<div id="screen-leaderboard" class="screen">
+  <div class="card">
+    <div class="card-title">🏆 Class Leaderboard</div>
+    <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px">Everyone started with $5,400. How did your choices compare?</p>
+    <hr class="section-divider">
+    <div id="lb-container"><p style="font-size:14px;color:var(--gray-400)">Loading...</p></div>
+  </div>
+  <button class="btn btn-secondary" onclick="resetGame()">Play again</button>
+</div>
+
+</div><!-- /container -->
+
+<script>
+const MONTHLY = 5400;
+let state = {};
+let fullLog = [];
+
+const EVENTS = [
+  {id:'concert',title:"Your favorite artist drops a surprise NYC show",
+   desc:"Tickets are $160 each. Your whole friend group is going. It's a once-in-a-lifetime show.",
+   tag:'want',choices:[
+    {text:'Buy a ticket — $160',effect:-160,note:'Concert ticket'},
+    {text:'Watch the livestream from home — $0',effect:0,note:'Skipped the concert'},
+    {text:'Go but take the early subway home — $172',effect:-172,note:'Concert, left early for subway'}
+  ]},
+  {id:'sneakers',title:"Limited sneaker drop — shoes you've wanted for months",
+   desc:"They're $220. They will sell out in hours. Your friends already have theirs.",
+   tag:'want',choices:[
+    {text:'Buy them — $220',effect:-220,note:'Bought the sneakers'},
+    {text:'Pass this time — $0',effect:0,note:'Passed on the sneakers'},
+    {text:'Buy a similar budget style — $85',effect:-85,note:'Budget alternative sneakers'}
+  ]},
+  {id:'urgent_care',title:"You wake up sick — urgent care visit",
+   desc:"Bad ear infection. Urgent care: $250 after insurance. Antibiotics: $55 more.",
+   tag:'need',choices:[
+    {text:'Go to urgent care — $305',effect:-305,note:'Urgent care + meds'},
+    {text:"Tough it out — $0 now, but risk it getting worse",effect:0,note:'Skipped urgent care (risky)',followup:'Infection got worse — ER visit: -$480',followupEffect:-480},
+    {text:'Telehealth appointment + meds — $120',effect:-120,note:'Telehealth + meds'}
+  ]},
+  {id:'phone',title:"You cracked your phone screen — badly",
+   desc:"It's shattered. Touch screen barely works. Repair: $210.",
+   tag:'need',choices:[
+    {text:'Get it repaired — $210',effect:-210,note:'Phone screen repaired'},
+    {text:'Use it cracked for now — $0',effect:0,note:'Using cracked phone'},
+    {text:'Buy certified refurbished — $380',effect:-380,note:'Bought refurbished phone'}
+  ]},
+  {id:'philly',title:"Your crew is planning a weekend trip to Philly",
+   desc:"Close friend's birthday. Train + hotel split + meals: $340 total.",
+   tag:'want',choices:[
+    {text:'Go all in — $340',effect:-340,note:'Weekend trip to Philly'},
+    {text:'Skip it — $0',effect:0,note:'Skipped the Philly trip'},
+    {text:'Day trip only, no overnight — $110',effect:-110,note:'Day trip to Philly'}
+  ]},
+  {id:'subscriptions',title:"Forgotten subscriptions auto-charged",
+   desc:"Netflix, Hulu, a meditation app, a meal kit, and a gym you stopped attending. Total: $142.",
+   tag:'mixed',choices:[
+    {text:'Cancel everything — $0',effect:0,note:'Cancelled all forgotten subscriptions'},
+    {text:'Keep them all — $142',effect:-142,note:'Kept all subscriptions'},
+    {text:'Cancel the unused ones — $52',effect:-52,note:'Trimmed subscriptions to essentials'}
+  ]},
+  {id:'rent',title:"Landlord notice: rent going up $200",
+   desc:"Your lease is up. The market went up. You have to decide what to do.",
+   tag:'need',choices:[
+    {text:'Accept the increase — $200 more this month',effect:-200,note:'Accepted $200 rent increase'},
+    {text:'Negotiate — landlord agrees to $120',effect:-120,note:'Negotiated rent increase to $120'},
+    {text:'Start apartment hunting — $80 in application fees',effect:-80,note:'Started apartment hunting'}
+  ]},
+  {id:'laundry',title:"Three weeks of laundry has piled up",
+   desc:"You've been avoiding it. Laundromat raised prices. Total to catch up: $62.",
+   tag:'need',choices:[
+    {text:'Do it all now — $62',effect:-62,note:'Caught up on laundry'},
+    {text:'Hand wash the essentials — $0',effect:0,note:'Hand washed clothes only'},
+    {text:'Buy a few new basics instead — $95',effect:-95,note:'Bought new clothes instead of laundry'}
+  ]},
+  {id:'birthday',title:"Close friend's birthday dinner",
+   desc:"They picked a nice restaurant. Your share of the bill plus a gift: $160.",
+   tag:'want',choices:[
+    {text:'All out — dinner + gift = $160',effect:-160,note:'Birthday dinner + gift'},
+    {text:'Dinner only — $95',effect:-95,note:'Birthday dinner, no gift'},
+    {text:'Skip dinner, drop off a homemade card — $0',effect:0,note:'Skipped birthday dinner'}
+  ]},
+  {id:'subway',title:"Subway delays all week — Ubers adding up",
+   desc:"Three Ubers to work, surge pricing twice. Total: $89.",
+   tag:'mixed',choices:[
+    {text:'Accept it — $89',effect:-89,note:'Ubered through subway delays'},
+    {text:'Leave earlier, wait out the delays — $0',effect:0,note:'Waited out subway delays'},
+    {text:'Work from home two days, one subway day — $22',effect:-22,note:'WFH during delays'}
+  ]},
+  {id:'taxrefund',title:"Tax refund just hit your account",
+   desc:"You're getting $580 back from the IRS. What do you do with it?",
+   tag:'mixed',choices:[
+    {text:'Put it all in your emergency fund — +$580',effect:580,note:'Tax refund → emergency fund'},
+    {text:'Treat yourself — new fit, dinner, spa day — spend it all',effect:-580,note:'Spent entire tax refund'},
+    {text:'Split it — half saved, half fun money',effect:0,note:'Split tax refund 50/50'}
+  ]},
+  {id:'family',title:"Family member calls — they need your help",
+   desc:"Your mom needs $250 to cover a utility bill she can't pay this month.",
+   tag:'need',choices:[
+    {text:'Send the full $250',effect:-250,note:'Sent $250 to family'},
+    {text:'Send half — $125',effect:-125,note:'Sent $125 to family'},
+    {text:"Explain you can't right now — $0",effect:0,note:"Couldn't help family this month"}
+  ]},
+  {id:'gym',title:"New gym just opened in your neighborhood",
+   desc:"State of the art. $95/month. You've been meaning to get back into working out.",
+   tag:'want',choices:[
+    {text:'Join the new gym — $95/month',effect:-95,note:'Joined new gym'},
+    {text:'Run in the park for free — $0',effect:0,note:'Running in the park'},
+    {text:'Join the YMCA instead — $45/month',effect:-45,note:'Joined YMCA'}
+  ]},
+  {id:'splurge',title:"It's been a rough week — you want to treat yourself",
+   desc:"A $120 solo dinner at a nice restaurant. No occasion. You earned it.",
+   tag:'want',choices:[
+    {text:'Do it — $120',effect:-120,note:'Solo splurge dinner'},
+    {text:'Cook a nice meal at home — $30',effect:-30,note:'Nice home-cooked dinner'},
+    {text:'Order delivery, watch a movie — $42',effect:-42,note:'Delivery and movie night'}
+  ]},
+  {id:'parking',title:"You borrowed a friend's car and got a parking ticket",
+   desc:"Forgot about alternate side parking. Ticket: $115. You feel terrible.",
+   tag:'need',choices:[
+    {text:'Pay it immediately — $115',effect:-115,note:'Paid parking ticket'},
+    {text:'Contest it online — free, takes 6 weeks',effect:0,note:'Contesting parking ticket'},
+    {text:"Ignore it for now — $0 today (doubles if unpaid)",effect:0,note:'Ignored ticket (risky)',followup:'Ignored ticket doubled — now $230',followupEffect:-230}
+  ]}
+];
+
+function shuffle(arr) {
+  let a = [...arr];
+  for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function fmt(n) {
+  const abs = Math.abs(Math.round(n));
+  return (n < 0 ? '-' : '+') + '$' + abs.toLocaleString();
+}
+
+function fmtBal(n) {
+  n = Math.round(n);
+  return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString();
+}
+
+function updatePreview() {
+  const h = +document.getElementById('housing').value;
+  const t = +document.getElementById('transit').value;
+  const f = +document.getElementById('food').value;
+  const b = +document.getElementById('bills').value;
+  const s = +document.getElementById('savings').value;
+  const total = h + t + f + b;
+  const left = MONTHLY - total - s;
+  document.getElementById('preview-fixed').textContent = '$' + total.toLocaleString() + '/mo';
+  const leftEl = document.getElementById('preview-left');
+  leftEl.textContent = '$' + Math.max(0, left).toLocaleString() + '/mo';
+  leftEl.className = left < 200 ? 'danger' : left < 600 ? 'warn' : 'ok';
+}
+
+updatePreview();
+
+function startGame() {
+  const name = (document.getElementById('player-name').value || 'Student').trim();
+  const housing = +document.getElementById('housing').value;
+  const transit = +document.getElementById('transit').value;
+  const food = +document.getElementById('food').value;
+  const bills = +document.getElementById('bills').value;
+  const savingsSet = +document.getElementById('savings').value;
+  const weeklyFixed = Math.round((housing + transit + food + bills) / 4);
+  const events = shuffle(EVENTS).slice(0, 4);
+
+  state = { name, balance: MONTHLY - savingsSet, week: 1, events, weeklyFixed,
+            housing, transit, food, bills, savingsSet, debt: 0, pendingFollowup: null };
+  fullLog = [];
+  if (savingsSet > 0) fullLog.push({ text: 'Set aside emergency fund', amount: savingsSet, neg: true });
+
+  showScreen('game');
+  renderWeek();
+}
+
+function renderWeek() {
+  document.getElementById('player-display').textContent = state.name;
+  refreshBalance();
+  renderDots();
+  renderFixed();
+  renderEvent();
+  renderLog('event-log');
+}
+
+function refreshBalance() {
+  const el = document.getElementById('balance-display');
+  el.textContent = fmtBal(state.balance);
+  el.className = 'hud-balance' + (state.balance < 0 ? ' negative' : '');
+  document.getElementById('debt-warning').style.display = state.debt > 0 ? 'block' : 'none';
+}
+
+function renderDots() {
+  const el = document.getElementById('week-dots');
+  el.innerHTML = '';
+  for(let i=1;i<=4;i++) {
+    const d = document.createElement('div');
+    d.className = 'week-dot ' + (i < state.week ? 'done' : i === state.week ? 'active' : 'todo');
+    d.textContent = 'W' + i;
+    el.appendChild(d);
+  }
+}
+
+function renderFixed() {
+  const items = [
+    { label: 'Rent (weekly share)', amt: Math.round(state.housing / 4) },
+    { label: 'Transit', amt: Math.round(state.transit / 4) },
+    { label: 'Food (baseline)', amt: Math.round(state.food / 4) },
+    { label: 'Bills & subscriptions', amt: Math.round(state.bills / 4) },
+  ];
+  let html = items.map(i =>
+    `<div class="fixed-row"><span>${i.label}</span><span class="amount">-$${i.amt}</span></div>`
+  ).join('');
+  if (state.debt > 0) {
+    const interest = Math.round(state.debt * 0.03);
+    html += `<div class="fixed-row"><span class="interest">⚠ Credit card interest (3% on $${Math.round(state.debt).toLocaleString()} debt)</span><span class="amount">-$${interest}</span></div>`;
+  }
+  document.getElementById('fixed-costs-list').innerHTML = html;
+  document.getElementById('fixed-total-amt').textContent = '-$' + state.weeklyFixed.toLocaleString();
+}
+
+function renderEvent() {
+  const ev = state.events[state.week - 1];
+  const tagEl = document.getElementById('event-tag');
+  if (ev.tag === 'want') { tagEl.textContent = '🟢 Temptation'; tagEl.className = 'event-type-tag tag-temptation'; }
+  else if (ev.tag === 'need') { tagEl.textContent = '🔴 Unexpected Need'; tagEl.className = 'event-type-tag tag-need'; }
+  else { tagEl.textContent = '🟡 Heads Up'; tagEl.className = 'event-type-tag tag-headsup'; }
+
+  document.getElementById('event-title').textContent = ev.title;
+  document.getElementById('event-desc').textContent = ev.desc;
+
+  const choicesEl = document.getElementById('event-choices');
+  choicesEl.innerHTML = '';
+  ev.choices.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<span class="choice-label">${['A','B','C'][i]}.</span> ${c.text}`;
+    btn.onclick = () => makeChoice(i);
+    choicesEl.appendChild(btn);
+  });
+}
+
+function renderLog(targetId) {
+  const el = document.getElementById(targetId);
+  if (fullLog.length === 0) { el.innerHTML = '<p style="font-size:13px;color:var(--gray-400)">No events yet.</p>'; return; }
+  el.innerHTML = fullLog.slice().reverse().map(e =>
+    `<div class="log-entry"><span class="log-name">${e.text}</span><span class="log-amount ${e.neg ? 'neg' : 'pos'}">${e.neg ? '-' : '+'}$${Math.abs(e.amount).toLocaleString()}</span></div>`
+  ).join('');
+}
+
+function makeChoice(idx) {
+  const ev = state.events[state.week - 1];
+  const choice = ev.choices[idx];
+  const effect = choice.effect;
+
+  fullLog.push({ text: choice.note, amount: Math.abs(effect), neg: effect <= 0 && effect !== 0 || effect < 0, raw: effect });
+  state.balance += effect;
+  state.balance -= state.weeklyFixed;
+  fullLog.push({ text: 'Weekly fixed costs', amount: state.weeklyFixed, neg: true });
+
+  if (state.balance < 0) {
+    state.debt = Math.abs(state.balance);
+    const interest = Math.round(state.debt * 0.03);
+    state.balance -= interest;
+    fullLog.push({ text: 'Credit card interest charged', amount: interest, neg: true });
+  } else {
+    state.debt = 0;
+  }
+
+  if (choice.followup && choice.followupEffect) {
+    state.pendingFollowup = { text: choice.followup, amount: Math.abs(choice.followupEffect), effect: choice.followupEffect };
+  }
+
+  if (state.pendingFollowup && state.week >= 2) {
+    state.balance += state.pendingFollowup.effect;
+    fullLog.push({ text: state.pendingFollowup.text, amount: state.pendingFollowup.amount, neg: true });
+    state.pendingFollowup = null;
+  }
+
+  state.week++;
+  if (state.week > 4) endGame();
+  else renderWeek();
+}
+
+async function endGame() {
+  showScreen('result');
+  const b = state.balance;
+  let emoji, title, desc;
+  if (b >= 1200) { emoji = '🎉'; title = 'Thriving'; desc = "You finished the month comfortably in the black. Disciplined choices — NYC didn't beat you."; }
+  else if (b >= 400) { emoji = '😊'; title = 'Getting By'; desc = "You made it through without disaster. A few close calls, but you stayed positive."; }
+  else if (b >= 0) { emoji = '😅'; title = 'Barely Made It'; desc = "You finished positive — but just barely. One more emergency and you'd have been in serious trouble."; }
+  else if (b >= -600) { emoji = '😬'; title = 'In the Red'; desc = "You finished the month in debt. That interest will follow you into next month."; }
+  else { emoji = '😰'; title = 'Deep in Debt'; desc = "Tough month. A mix of expensive choices and bad luck left you significantly in the hole."; }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-desc').textContent = desc;
+  const rb = document.getElementById('result-balance');
+  rb.textContent = fmtBal(b);
+  rb.className = 'final-balance-num ' + (b < 0 ? 'negative' : 'positive');
+  renderLog('result-log');
+  await saveScore(state.name, b);
+}
+
+async function saveScore(name, balance) {
+  try {
+    let scores = [];
+    try { const d = await window.storage.get('stm_lb_v2'); if(d) scores = JSON.parse(d.value); } catch(e) {}
+    scores = scores.filter(s => s.name !== name);
+    scores.push({ name, balance: Math.round(balance), ts: Date.now() });
+    scores.sort((a, b) => b.balance - a.balance);
+    scores = scores.slice(0, 30);
+    await window.storage.set('stm_lb_v2', JSON.stringify(scores));
+  } catch(e) { console.log('storage err', e); }
+}
+
+async function showLeaderboard() {
+  showScreen('leaderboard');
+  try {
+    let scores = [];
+    try { const d = await window.storage.get('stm_lb_v2'); if(d) scores = JSON.parse(d.value); } catch(e) {}
+    const el = document.getElementById('lb-container');
+    if (scores.length === 0) { el.innerHTML = '<p style="font-size:14px;color:var(--gray-400)">No scores yet — be the first to finish!</p>'; return; }
+    const medals = ['🥇','🥈','🥉'];
+    el.innerHTML = scores.map((s, i) => {
+      const b = s.balance;
+      let badge, bgc, tc;
+      if (b >= 1200) { badge = 'Thriving'; bgc = 'var(--green-light)'; tc = 'var(--green)'; }
+      else if (b >= 400) { badge = 'Getting By'; bgc = 'var(--yellow-light)'; tc = 'var(--yellow)'; }
+      else if (b >= 0) { badge = 'Barely Made It'; bgc = '#fff0d0'; tc = '#b45309'; }
+      else { badge = 'In Debt'; bgc = 'var(--red-light)'; tc = 'var(--red)'; }
+      return `<div class="lb-row">
+        <span class="lb-rank">${i < 3 ? medals[i] : i+1}</span>
+        <span class="lb-name">${s.name}</span>
+        <span class="lb-badge" style="background:${bgc};color:${tc}">${badge}</span>
+        <span class="lb-balance" style="color:${b<0?'var(--red)':'var(--green)'}">${fmtBal(b)}</span>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('lb-container').innerHTML = '<p style="font-size:14px;color:var(--gray-400)">Leaderboard unavailable.</p>';
+  }
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function resetGame() { showScreen('welcome'); }
+</script>
+</body>
+</html>
